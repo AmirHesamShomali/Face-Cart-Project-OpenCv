@@ -1,8 +1,10 @@
 import sqlite3
 import os
+import json
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 DATABASE_PATH = os.path.join(BASE_DIR, "database.db")
 
 
@@ -28,7 +30,7 @@ def create_database():
 
             full_name TEXT NOT NULL,
 
-            cart_number TEXT UNIQUE NOT NULL,
+            cart_number TEXT  NOT NULL,
 
             cvv2 TEXT NOT NULL,
 
@@ -46,26 +48,89 @@ def create_database():
     print("Database created successfully.")
 
 
-def show_users():
+def add_user(
+    full_name,
+    cart_number,
+    cvv2,
+    password,
+    face_encoding
+):
 
     connection = get_connection()
 
     cursor = connection.cursor()
 
-    cursor.execute("SELECT * FROM users")
+    face_encoding_json = json.dumps(face_encoding)
 
-    users = cursor.fetchall()
+    cursor.execute("""
+        INSERT INTO users
+        (
+            full_name,
+            cart_number,
+            cvv2,
+            password,
+            face_encoding
+        )
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        full_name,
+        cart_number,
+        cvv2,
+        password,
+        face_encoding_json
+    ))
 
-    print("Users:")
-
-    for user in users:
-        print(dict(user))
+    connection.commit()
 
     connection.close()
+
+    print("User added successfully.")
+
+
+def get_user_by_cart_number(cart_number):
+
+    connection = get_connection()
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT *
+        FROM users
+        WHERE cart_number = ?
+    """, (cart_number,))
+
+    user = cursor.fetchone()
+
+    connection.close()
+
+    return user
 
 
 if __name__ == "__main__":
 
     create_database()
 
-    show_users()
+    connection = get_connection()
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT *
+        FROM users
+    """)
+
+    users = cursor.fetchall()
+
+    connection.close()
+
+    print()
+
+    print("Users count:", len(users))
+
+    for user in users:
+
+        print()
+
+        print("ID:", user["id"])
+        print("Full Name:", user["full_name"])
+        print("Cart Number:", user["cart_number"])
